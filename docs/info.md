@@ -242,6 +242,27 @@ Hardened with LibreLane 3.0.5 (sky130A, `sky130_fd_sc_hd`), 1x1 tile,
   `nom_ss_100C_1v60`: 99, `min_ss_100C_1v60`: 77; every other corner is
   clean. See the limitation below.
 
+### Tiny Tapeout precheck verification
+
+Ran the official `tt/precheck` tool locally against the submission GDS
+(`tt_submission/tt_um_janane2802_divcounter.gds`). 14/15 checks pass:
+KLayout FEOL/BEOL/offgrid/pin-label/zero-area, pin/boundary/power-pin/
+layer/cell-name/urpm-nwell checks, analog pin check, and Verilog syntax
+check all clean.
+
+The remaining failure (Magic DRC) is a local-environment artifact, not a
+design issue: Ubuntu 24.04's `apt` package ships Magic 8.3.105 (2021), but
+the PDK's techfile requires a newer Magic, so the older binary fails to
+parse it correctly. This is redundant with an already-passing check:
+hardening's own `OpenROAD`/`Magic.DRC` step (`runs/wokwi/62-magic-drc`,
+`63-checker-magicdrc`) runs the equivalent DRC ruleset inside LibreLane's
+Docker container (a current Magic build) and reports
+`magic__drc_error__count: 0`. No separate check is actually missed.
+
+Precheck does not check timing/STA at all (no slew/setup/hold checks in
+its 15-check suite) -- the max-slew limitation above is caught solely by
+LibreLane's own signoff STA, not by precheck.
+
 ## Known limitations
 
 - **Max slew violations at the worst-case PVT corner.** 120 max-slew
