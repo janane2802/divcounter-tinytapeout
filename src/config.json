@@ -13,7 +13,23 @@
 
   "//": "PL_TARGET_DENSITY_PCT - You can increase this if Global Placement fails with error GPL-0302.",
   "//": "Users have reported that values up to 80 worked well for them.",
+  "//": "First attempt tried 45 (lower than default) + slew_pct 70: this got",
+  "//": "GPL-0302 (density too low for the free area) and, combined with the",
+  "//": "70% slew margin, made OpenROAD's resizer repair pass converge so",
+  "//": "slowly (1 net repaired per 10 iterations) that it grew to 3GiB RSS",
+  "//": "and was OOM-killed on this machine's 3.7GiB WSL VM. Back to the",
+  "//": "template default density and a more moderate slew margin instead.",
   "PL_TARGET_DENSITY_PCT": 60,
+
+  "//": "50 (density 60) succeeded cleanly: 0 DRC/LVS/antenna/setup/hold",
+  "//": "violations, only 120 max-slew violations at the ss_100C_1v60 corner",
+  "//": "cluster (same pattern as mac-unit-tinytapeout). Tried 60 next to",
+  "//": "see if it reduced that further -- it instead reproduced the same",
+  "//": "runaway-resizer/OOM failure as the 70 attempt (RSS climbed past",
+  "//": "3GiB and the whole WSL VM became unresponsive; had to `wsl",
+  "//": "--shutdown` to recover). Reverted to 50 and accepted the 120",
+  "//": "max-slew violations as a documented limitation -- see docs/info.md.",
+  "DESIGN_REPAIR_MAX_SLEW_PCT": 50,
 
   "//": "CLOCK_PERIOD - Increase this in case you are getting setup time violations.",
   "//": "The value is in nanoseconds, so 20ns == 50MHz.",
