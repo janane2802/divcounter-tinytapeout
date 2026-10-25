@@ -224,7 +224,46 @@ None. All inputs and outputs are driven/read directly from the TT demo
 board's digital I/O (or, in the lab, a function generator into `sig_in`
 and a logic analyzer/SPI master on `sck`/`cs_n`/`miso`/`clk_out`).
 
+## Hardening results
+
+Hardened with LibreLane 3.0.5 (sky130A, `sky130_fd_sc_hd`), 1x1 tile,
+50 MHz (`CLOCK_PERIOD` = 20ns):
+
+- **Area/utilization:** core area 16493.3 um^2 inside a 17954.7 um^2 die
+  (fits the 1x1 tile exactly), 65.2% cell utilization, 2767 standard-cell
+  instances.
+- **DRC, LVS, antenna:** all clean -- `magic__drc_error__count` = 0,
+  all `lvs_*` counts = 0, 0 antenna violations (1 antenna diode inserted
+  as a normal preventive fixup, not a violation).
+- **Setup/hold timing:** 0 violations at every one of the 9 signoff PVT
+  corners.
+- **Max slew:** 120 violations, all at the `*_ss_100C_1v60` corner
+  cluster (slow process, 100C, 1.60V) -- `max_ss_100C_1v60`: 120,
+  `nom_ss_100C_1v60`: 99, `min_ss_100C_1v60`: 77; every other corner is
+  clean. See the limitation below.
+
 ## Known limitations
+
+- **Max slew violations at the worst-case PVT corner.** 120 max-slew
+  violations, isolated to the `*_ss_100C_1v60` corner cluster (slow
+  process, 100C, 1.60V) -- every other corner (including typical
+  `tt_025C_1v80` and fast `ff_n40C_1v95`) is fully clean. DRC, LVS, and
+  antenna checks all pass, and setup/hold timing is clean everywhere too;
+  this is purely a timing-margin issue under worst-case slow/hot/
+  low-voltage silicon, not a manufacturability blocker.
+
+  Two `DESIGN_REPAIR_MAX_SLEW_PCT` values were tried beyond the first
+  (default-ish) attempt: 70 (with a lowered `PL_TARGET_DENSITY_PCT`) and
+  60 both made OpenROAD's resizer-based repair pass converge so slowly
+  that it ran away in memory and was OOM-killed on the hardening
+  machine (a resource-constrained 3.7GiB WSL VM) rather than actually
+  improving the violation count -- the run never got far enough to show
+  whether the setting itself would have helped. 50 (with the template's
+  default density, 60) is what's committed, and is the best result
+  obtained: accepted as a known limitation per this project's own
+  re-harden guidance, rather than continuing to chase it on hardware
+  that can't reliably run a more aggressive repair pass. A machine with
+  more memory headroom might be able to push this further.
 
 - **`sig_in` must stay below clk/2.** The prescaler's 2-FF synchronizer +
   edge detector needs the input held stable for a few clk cycles each
