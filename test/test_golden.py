@@ -24,8 +24,13 @@ the same hardware path already exercised at gate_sel=0..4; the only thing
 that changes for g=5..7 is which constant comes out of that same lookup).
 Those three lookup constants were verified by hand against the formula
 2^(10+2g)-1 instead: g=5 -> 1048575, g=6 -> 4194303, g=7 -> 16777215.
+
+Gate-level runs (GATE_LEVEL_SIM=1, set by run_tests_gl.py / `make
+GATES=yes`) use a much smaller spot-check instead -- see
+test_golden_model_sweep's GATE_LEVEL_SIM branch below.
 """
 
+import os
 import random
 
 import cocotb
@@ -335,6 +340,22 @@ async def run_case(dut, rng, gate_sel, n_active, num_edges):
 async def test_golden_model_sweep(dut):
     cocotb.start_soon(Clock(dut.clk, 10, unit="us").start())
     rng = random.Random(12345)
+
+    if os.environ.get("GATE_LEVEL_SIM"):
+        # Gate-level sim (real standard-cell primitives, not behavioral RTL)
+        # is far more expensive per cycle than RTL sim -- the exhaustive
+        # sweep below already ran, and passed, at RTL (test/run_tests.py).
+        # Here we only need to catch a synthesis-introduced bug, not
+        # re-prove the algorithm, so this spot-checks a small, deliberately
+        # varied set instead: N=2 (min), N=3 (odd), N=17 (typical), N=40
+        # (upper end of the RTL-exhaustive range), each at gate_sel=0 and
+        # gate_sel=2, one random phase each. See docs/info.md.
+        for n_active in (2, 3, 17, 40):
+            for gate_sel in (0, 2):
+                num_edges = rng.randint(2, 15)
+                await run_case(dut, rng, gate_sel=gate_sel, n_active=n_active, num_edges=num_edges)
+        dut._log.info("test_golden_model_sweep PASSED (gate-level spot-check subset)")
+        return
 
     # gate_sel=0: effectively exhaustive over N, randomized phase per case.
     for n_active in range(2, 41):

@@ -10,6 +10,7 @@ runs/<tag>/final/pnl/<design>.pnl.v) and test/pdk_models/{primitives,
 sky130_fd_sc_hd}.v (copied from the PDK) to be present locally.
 """
 
+import os
 import sys
 from pathlib import Path
 
@@ -27,6 +28,13 @@ def main():
         sys.exit(f"Missing {GATE_LEVEL_NETLIST} -- copy it from the hardening run's final/pnl/ output first.")
     if not (PDK_MODELS_DIR / "sky130_fd_sc_hd.v").exists():
         sys.exit(f"Missing {PDK_MODELS_DIR}/sky130_fd_sc_hd.v -- copy it from the PDK's libs.ref verilog dir first.")
+
+    # Gate-level sim (real standard-cell primitives, not behavioral RTL) is
+    # far more expensive per cycle than RTL sim. test_golden.py's exhaustive
+    # sweep already ran -- and passed -- at RTL; here it only needs to catch
+    # synthesis-introduced bugs, not re-prove the algorithm, so it reads this
+    # to cut its scope way down. See test_golden.py and docs/info.md.
+    os.environ["GATE_LEVEL_SIM"] = "1"
 
     runner = get_runner("icarus")
 

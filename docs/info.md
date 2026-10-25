@@ -272,3 +272,10 @@ and a logic analyzer/SPI master on `sck`/`cs_n`/`miso`/`clk_out`).
   window-length-lookup hardware path is already exhaustively exercised at
   the smaller `gate_sel` values. Those three lookup constants (2^20-1,
   2^22-1, 2^24-1) were instead verified by hand against the formula.
+  **At gate level** (real standard-cell primitives instead of behavioral
+  RTL, much more expensive per simulated cycle), this sweep further
+  reduces itself to a small spot-check (N in {2,3,17,40} x gate_sel in
+  {0,2}, one random phase each) -- the exhaustive RTL run already proved
+  the algorithm; gate-level only needs to catch a synthesis-introduced
+  bug, not re-prove it. See `test/test_golden.py`'s `GATE_LEVEL_SIM`
+  branch.
